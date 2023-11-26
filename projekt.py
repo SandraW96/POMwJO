@@ -58,7 +58,7 @@ print("Threshold used: " + str(thresh_value))
 threshed_array = sitk.GetArrayViewFromImage(thresh_img)
 Show(threshed_array)
 
-# open & closing
+# opening & closing
 cleaned_thresh_img = sitk.BinaryOpeningByReconstruction(thresh_img, [10, 10, 10])
 cleaned_thresh_img = sitk.BinaryClosingByReconstruction(cleaned_thresh_img, [10, 10, 10])
 
