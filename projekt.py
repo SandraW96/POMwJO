@@ -3,6 +3,14 @@ import matplotlib.pyplot as plt
 import matplotlib.image as mpimg
 import sys
 import os
+from glob import glob
+import glob2
+import pydicom as pm
+
+#pth do dcms
+path = '/Users/sandrawieczorek/Library/CloudStorage/OneDrive-PolitechnikaŚląska/POMwJO/S8010'
+
+#anonymize patient data
 
 # show images
 def Show(array):
@@ -14,7 +22,6 @@ def Show(array):
 
 
 # read files
-path = '/Users/sandrawieczorek/Library/CloudStorage/OneDrive-PolitechnikaŚląska/POMwJO/S8010'
 reader = sitk.ImageSeriesReader()
 dcm_Names = reader.GetGDCMSeriesFileNames(path)
 reader.SetFileNames((dcm_Names))
