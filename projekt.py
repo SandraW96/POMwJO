@@ -6,6 +6,9 @@ import os
 from glob import glob
 import glob2
 import pydicom as pm
+import imagej
+import simple_slice_viewer as ssv
+
 
 #pth do dcms
 path = '/Users/sandrawieczorek/Library/CloudStorage/OneDrive-PolitechnikaŚląska/POMwJO/S8010'
@@ -27,12 +30,14 @@ dcm_Names = reader.GetGDCMSeriesFileNames(path)
 reader.SetFileNames((dcm_Names))
 image = reader.Execute()
 
+#display
+#ssv.display(image = image)
+
 size = image.GetSize()
 image_array = sitk.GetArrayViewFromImage(image)
 
 print("Image size:", size[0], size[1], size[2])
 
-Show(image_array)
 
 plt.hist(sitk.GetArrayViewFromImage(image).flatten(), bins = 200)
 plt.show()
@@ -40,7 +45,6 @@ plt.show()
 
 ########    START SEGMENTATION     ########
 #threshold filters - divide from bckground
-
 
 threshold_filters = {
     "Otsu": sitk.OtsuThresholdImageFilter(),
@@ -63,31 +67,20 @@ except KeyError:
 
 print("Threshold used: " + str(thresh_value))
 threshed_array = sitk.GetArrayViewFromImage(thresh_img)
-Show(threshed_array)
 
 # opening & closing
 cleaned_thresh_img = sitk.BinaryOpeningByReconstruction(thresh_img, [10, 10, 10])
-cleaned_thresh_img = sitk.BinaryClosingByReconstruction(cleaned_thresh_img, [10, 10, 10])
+cleaned_thresh_img = sitk.BinaryClosingByReconstruction(cleaned_thresh_img, [15, 15, 15])
 
-#watershed segmentation
-dist_img = sitk.SignedMaurerDistanceMap(
-    cleaned_thresh_img != 0,
-    insideIsPositive=False,
-    squaredDistance=False,
-    useImageSpacing=False,
-)
-radius = 10
-# Seeds have a distance of "radius" or more to the object boundary, they are uniquely labelled.
-seeds = sitk.ConnectedComponent(dist_img < -radius)
-# Relabel the seed objects using consecutive object labels while removing all objects with less than 15 pixels.
-seeds = sitk.RelabelComponent(seeds, minimumObjectSize=15)
-# Run the watershed segmentation using the distance map and seeds.
-ws = sitk.MorphologicalWatershedFromMarkers(dist_img, seeds, markWatershedLine=True)
-ws = sitk.Mask(ws, sitk.Cast(cleaned_thresh_img, sitk.sitkUInt8))
+seed = (358, 247, 12)
+feature_img = sitk.GradientMagnitudeRecursiveGaussian(image, sigma=.5)
+speed_img = sitk.BoundedReciprocal(feature_img)
+fm_filter = sitk.FastMarchingBaseImageFilter()
+fm_filter.SetTrialPoints([seed])
+fm_filter.SetStoppingValue(800)
+fm_img = fm_filter.Execute(speed_img)
 
-plt.figure()
-plt.subplot(1, 3, 3)
-plt.imshow(threshed_array)
-plt.imshow(sitk.LabelOverlay(image, ws))
-plt.imshow(sitk.LabelOverlay(image, seeds))
-plt.show()
+ssv.display(fm_img)
+
+
+
