@@ -14,7 +14,7 @@ from simple_slice_viewer.controller_base import ControllerBase
 
 
 #pth do dcms
-path = '/Users/sandrawieczorek/Library/CloudStorage/OneDrive-PolitechnikaŚląska/POMwJO/S8010'
+path = '/Users/sandrawieczorek/Library/CloudStorage/OneDrive-PolitechnikaŚląska/POMwJO/Bm/SAG_T2_PROPELLER_8'
 
 #anonymize patient data
 
@@ -22,7 +22,7 @@ path = '/Users/sandrawieczorek/Library/CloudStorage/OneDrive-PolitechnikaŚląsk
 def Show(array):
     fig = plt.figure()
     for i in range(len(array)):
-        plt.subplot(5, 5, i + 1)
+        plt.subplot(5, 6, i + 1)
         plt.imshow(array[i], cmap='gray')
     plt.show()
 
@@ -37,20 +37,21 @@ image = reader.Execute()
 #display
 o = ssv.display(image = image)
 seed = o.slice_controller.mouse.get_image_data(o.view.image_view.image_view.get_position())['position_index']
-lower_thresh = (o.slice_controller.mouse.get_image_data(o.view.image_view.image_view.get_position())['image_value'])
-lower_thresh = float(lower_thresh) - 200
+seed_val = (o.slice_controller.mouse.get_image_data(o.view.image_view.image_view.get_position())['image_value'])
+lower_thresh = float(seed_val) - 200
 upper_thresh = (o.slice_controller.mouse.get_image_data(o.view.image_view.image_view.get_position())['image_value'])
-upper_thresh = float(upper_thresh) + 200
+upper_thresh = float(seed_val) + 200
 
 
 print(seed)
+print(str(lower_thresh), str(upper_thresh))
 
 
 size = image.GetSize()
 image_array = sitk.GetArrayViewFromImage(image)
 
 print("Image size:", size[0], size[1], size[2])
-
+del(o)
 
 plt.hist(sitk.GetArrayViewFromImage(image).flatten(), bins = 200)
 plt.show()
@@ -80,6 +81,13 @@ except KeyError:
 
 print("Threshold used: " + str(thresh_value))
 threshed_array = sitk.GetArrayViewFromImage(thresh_img)
+
+if thresh_value > 1000:
+    lower_thresh = float(seed_val) - 200
+    upper_thresh = float(seed_val) + 1500
+elif thresh_value < 220:
+    lower_thresh = float(seed_val) - 130
+    upper_thresh = float(seed_val) + 30
 
 # opening & closing
 cleaned_thresh_img = sitk.BinaryOpeningByReconstruction(thresh_img, [10, 10, 10])
@@ -119,23 +127,16 @@ seg = sitk.ConnectedThreshold(image, seedList=[seed], lower=lower_thresh, upper=
 #                                  replaceValue=1)
 # ssv.display(seg)
 
+vectorRadius = (2, 2, 2)
+kernel = sitk.sitkBall
+seg_implicit_thresholds_clean = sitk.BinaryMorphologicalClosing(
+    seg, vectorRadius, kernel
+)
 
 #
 final = sitk.LabelOverlay(image, seg)
 
-pink = [255, 105, 180]
-green = [0, 255, 0]
-gold = [255, 215, 0]
-
-combined = sitk.LabelOverlay(
-    image=image,
-    labelImage=seg,
-    opacity=0.5,
-    backgroundValue=40,
-)
-
-
-Show(sitk.GetArrayViewFromImage(seg))
+Show(sitk.GetArrayViewFromImage(seg_implicit_thresholds_clean))
 # Show(sitk.GetArrayViewFromImage(combined))
-# ssv.display(seg)
+# ssv.display(image, seg)
 
